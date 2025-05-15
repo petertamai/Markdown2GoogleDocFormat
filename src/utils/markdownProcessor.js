@@ -6,7 +6,7 @@ const logger = require('./logger');
 /**
  * Custom renderer for marked to track element hierarchy
  */
-class GoogleDocsRenderer extends marked.Renderer {
+class GoogleDocsRenderer {
   constructor() {
     super();
     this.elements = [];
@@ -218,16 +218,17 @@ class GoogleDocsRenderer extends marked.Renderer {
  */
 exports.processMarkdown = (markdown) => {
   try {
-    // Configure marked with custom renderer
+    // Create a new instance of marked
+    const markedInstance = new marked.Marked();
+    
+    // Create a new renderer
     const renderer = new GoogleDocsRenderer();
     
-    // Use marked properly with the renderer
-    const options = {
-      renderer: renderer
-    };
+    // Set the renderer
+    markedInstance.use({ renderer });
     
     // Parse markdown
-    marked.parse(markdown, options);
+    markedInstance.parse(markdown);
     
     // Generate Google Docs requests
     const requests = renderer.generateGoogleDocsRequests();

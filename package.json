@@ -1,3 +1,5 @@
+# File: package.json
+
 {
   "name": "markdown-to-gdoc-converter",
   "version": "1.0.0",
