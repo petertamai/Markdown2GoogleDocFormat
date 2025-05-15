@@ -328,6 +328,6 @@ function processInlineFormatting(requests, text, startIndex) {
         },
         fields: 'link'
       }
-    });
+    }); 
   }
 }
