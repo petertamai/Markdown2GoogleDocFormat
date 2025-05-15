@@ -42,10 +42,27 @@ const apiKeyAuth = (req, res, next) => {
   next();
 };
 
-// Apply API key authentication if API_KEY is set
+// Add authentication check middleware
+const authenticateOAuthRequest = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Only check OAuth for markdown API routes
+    if (req.path.startsWith('/api/markdown/convert-to-gdoc')) {
+      logger.warn(`Unauthorized access attempt from ${req.ip} - Missing Bearer token`);
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized: Missing or invalid Bearer token'
+      });
+    }
+  }
+  next();
+};
+
+// Apply authentication middlewares
 if (process.env.API_KEY) {
   app.use(apiKeyAuth);
 }
+app.use(authenticateOAuthRequest);
 
 // Rate limiting
 if (process.env.ENABLE_RATE_LIMIT === 'true') {

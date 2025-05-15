@@ -1,3 +1,4 @@
+
 {
   "name": "Convert Markdown to Google Doc with OAuth",
   "nodes": [
@@ -16,57 +17,49 @@
     },
     {
       "parameters": {
-        "authentication": "oAuth2",
-        "resource": "drive",
-        "operation": "create",
-        "name": "={{ $json.docName }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "resource": "document",
+        "operation": "get",
+        "documentId": {
+          "__rl": true,
+          "value": "1Txq1vDVO3cIQk3I5eB-qk0Z3mR7FE_M7mGwllrKUYz0",
+          "mode": "list",
+          "cachedResultName": "Test Document",
+          "cachedResultUrl": "https://docs.google.com/document/d/1Txq1vDVO3cIQk3I5eB-qk0Z3mR7FE_M7mGwllrKUYz0/edit"
+        },
         "options": {}
       },
-      "name": "Google Drive",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 2,
+      "name": "Google Docs",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 1,
       "position": [
-        450,
+        400,
         300
       ],
       "credentials": {
-        "googleApi": {
+        "googleDocsOAuth2Api": {
           "id": "your-google-api-credential-id",
-          "name": "Google API"
+          "name": "Google Docs account"
         }
       }
     },
     {
       "parameters": {
-        "url": "http://localhost:3000/api/markdown/convert-to-gdoc",
         "method": "POST",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "x-api-key",
-              "value": "={{ $env.API_KEY }}"
-            }
-          ]
-        },
+        "url": "https://backend-mark2gdoc.jmj2s5.easypanel.host/api/markdown/convert-to-gdoc",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
             {
               "name": "docName",
-              "value": "={{ $json.docName }}"
+              "value": "My Document from n8n"
             },
             {
               "name": "markdown",
-              "value": "={{ $json.markdown }}"
-            },
-            {
-              "name": "credentials",
-              "value": "={{ $node[\"Google Drive\"].oauthTokenData }}"
+              "value": "# Heading\n\nThis is a paragraph with **bold** and *italic* text.\n\n- List item 1\n- List item 2\n\n```\ncode block\n```"
             }
           ]
         },
@@ -76,9 +69,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [
-        650,
+        600,
         300
-      ]
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "your-google-api-credential-id",
+          "name": "Google Docs account"
+        }
+      }
     }
   ],
   "connections": {
@@ -86,14 +85,14 @@
       "main": [
         [
           {
-            "node": "Google Drive",
+            "node": "Google Docs",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Google Drive": {
+    "Google Docs": {
       "main": [
         [
           {

@@ -11,7 +11,7 @@ const logger = require('../utils/logger');
  */
 exports.convertMarkdownToGoogleDoc = async (req, res) => {
   try {
-    const { docName, markdown, credentials } = req.body;
+    const { docName, markdown } = req.body;
     
     // Validate input
     if (!docName || !markdown) {
@@ -22,14 +22,24 @@ exports.convertMarkdownToGoogleDoc = async (req, res) => {
       });
     }
     
-    // Validate credentials
-    if (!credentials || !credentials.access_token) {
-      logger.error('Missing or invalid OAuth credentials');
-      return res.status(400).json({
+    // Extract OAuth token from Authorization header
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logger.error('Missing or invalid Authorization header');
+      return res.status(401).json({
         success: false,
-        error: 'Missing or invalid OAuth credentials'
+        error: 'Missing or invalid Authorization header. Please use OAuth2 authentication.'
       });
     }
+    
+    // Extract token
+    const accessToken = authHeader.replace('Bearer ', '');
+    
+    // Create credentials object
+    const credentials = {
+      access_token: accessToken,
+      token_type: 'Bearer'
+    };
     
     // Process markdown to Google Docs format
     logger.info('Processing markdown to Google Docs format');
