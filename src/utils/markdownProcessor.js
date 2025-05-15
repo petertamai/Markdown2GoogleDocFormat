@@ -1,6 +1,6 @@
 // File: src/utils/markdownProcessor.js
 
-const marked = require('marked');
+const { marked } = require('marked');
 const logger = require('./logger');
 
 /**
@@ -220,10 +220,14 @@ exports.processMarkdown = (markdown) => {
   try {
     // Configure marked with custom renderer
     const renderer = new GoogleDocsRenderer();
-    marked.use({ renderer });
+    
+    // Use marked properly with the renderer
+    const options = {
+      renderer: renderer
+    };
     
     // Parse markdown
-    marked.parse(markdown);
+    marked.parse(markdown, options);
     
     // Generate Google Docs requests
     const requests = renderer.generateGoogleDocsRequests();
