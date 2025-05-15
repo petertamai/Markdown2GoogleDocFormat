@@ -330,4 +330,4 @@ function processInlineFormatting(requests, text, startIndex) {
       }
     });
   }
-} 
+}

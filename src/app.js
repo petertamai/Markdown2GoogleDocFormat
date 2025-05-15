@@ -23,6 +23,9 @@ app.use(morgan('combined', {
   }
 }));
 
+// Set trust proxy to handle X-Forwarded-For headers correctly
+app.set('trust proxy', true);
+
 // API Key authentication middleware
 const apiKeyAuth = (req, res, next) => {
   // Skip API key check for health endpoint
