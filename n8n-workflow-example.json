@@ -1,0 +1,108 @@
+{
+  "name": "Convert Markdown to Google Doc with OAuth",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "/webhook-endpoint",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "drive",
+        "operation": "create",
+        "name": "={{ $json.docName }}",
+        "options": {}
+      },
+      "name": "Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "your-google-api-credential-id",
+          "name": "Google API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/markdown/convert-to-gdoc",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "docName",
+              "value": "={{ $json.docName }}"
+            },
+            {
+              "name": "markdown",
+              "value": "={{ $json.markdown }}"
+            },
+            {
+              "name": "credentials",
+              "value": "={{ $node[\"Google Drive\"].oauthTokenData }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        650,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
