@@ -1,6 +1,6 @@
 // File: src/controllers/markdownController.js
 
-const { formatMarkdownToGoogleDocsRequests } = require('../utils/googleDocsFormatter');
+const { processMarkdown } = require('../utils/markdownProcessor');
 const { createGoogleDoc } = require('../services/googleDocsService');
 const logger = require('../utils/logger');
 
@@ -43,7 +43,7 @@ exports.convertMarkdownToGoogleDoc = async (req, res) => {
     
     // Process markdown to Google Docs format using the more reliable formatter
     logger.info('Processing markdown to Google Docs format');
-    const { requests } = formatMarkdownToGoogleDocsRequests(markdown);
+    const { requests } = processMarkdown(markdown);
     
     // Create a new document using Google Docs API with provided credentials
     logger.info(`Creating Google Doc with name: ${docName}`);

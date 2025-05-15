@@ -10,216 +10,18 @@ const logger = require('./logger');
  */
 exports.processMarkdown = (markdown) => {
   try {
-    // Create a new instance of marked to avoid global conflicts
+    logger.info('Processing markdown to Google Docs format');
+    
+    // Create a new instance of marked
     const markedInstance = new marked.Marked();
     
-    // Array to store elements from the parsing process
-    const elements = [];
-    
-    // Custom renderer functions that will build our elements array
-    const renderer = {
-      heading(text, level) {
-        elements.push({
-          type: 'heading',
-          level,
-          text,
-          style: { namedStyleType: `HEADING_${level}` }
-        });
-        return ''; // Return empty string to avoid HTML output
-      },
-      
-      paragraph(text) {
-        elements.push({
-          type: 'paragraph',
-          text,
-          style: { namedStyleType: 'NORMAL_TEXT' }
-        });
-        return '';
-      },
-      
-      list(body, ordered) {
-        // Just track list type, items will be added via listitem
-        return '';
-      },
-      
-      listitem(text, task, checked) {
-        elements.push({
-          type: 'listItem',
-          text,
-          ordered: this.listOrder, // Use a property we'll set in the extension
-          index: elements.filter(e => e.type === 'listItem' && e.ordered === this.listOrder).length + 1,
-          level: 0, // Simplified for now, could track nesting level if needed
-          style: {
-            indentStart: { magnitude: 36, unit: 'PT' },
-            indentFirstLine: { magnitude: -18, unit: 'PT' }
-          }
-        });
-        return '';
-      },
-      
-      code(code, language) {
-        elements.push({
-          type: 'codeBlock',
-          text: code,
-          language,
-          style: {
-            fontFamily: 'Courier New',
-            backgroundColor: { color: { rgbColor: { red: 0.95, green: 0.95, blue: 0.95 } } }
-          }
-        });
-        return '';
-      },
-      
-      strong(text) {
-        return text; // Just return text, we're not handling inline formatting yet
-      },
-      
-      em(text) {
-        return text; // Just return text, we're not handling inline formatting yet
-      },
-      
-      image(href, title, text) {
-        elements.push({
-          type: 'image',
-          href,
-          title,
-          text,
-          style: {}
-        });
-        return '';
-      }
-    };
-    
-    // Use the renderer with our instance
-    markedInstance.use({ renderer });
-    
-    // Add hooks to track list type
-    const hooks = {
-      preprocess(markdown) {
-        return markdown;
-      },
-      postprocess(html) {
-        return html;
-      }
-    };
-    markedInstance.use({ hooks });
-    
-    // Add a walkTokens function to track list order
-    const walkTokens = (token) => {
-      if (token.type === 'list') {
-        renderer.listOrder = token.ordered; // Set a property on the renderer to track list type
-      }
-    };
-    markedInstance.use({ walkTokens });
-    
-    // Parse markdown
+    // Parse markdown to HTML (we'll ignore the HTML output)
     markedInstance.parse(markdown);
     
-    // Convert elements to Google Docs requests
-    const requests = [];
-    let index = 1; // Start at 1 since the document already has title
+    // Instead of using the renderer, directly parse the markdown
+    const requests = convertMarkdownToRequests(markdown);
     
-    for (const element of elements) {
-      let request;
-      
-      switch (element.type) {
-        case 'heading':
-          requests.push(
-            {
-              insertText: {
-                text: element.text + '\n',
-                location: { index }
-              }
-            },
-            {
-              updateParagraphStyle: {
-                paragraphStyle: element.style,
-                range: {
-                  startIndex: index,
-                  endIndex: index + element.text.length
-                },
-                fields: 'namedStyleType'
-              }
-            }
-          );
-          index += element.text.length + 1; // +1 for the newline
-          break;
-          
-        case 'paragraph':
-          requests.push({
-            insertText: {
-              text: element.text + '\n',
-              location: { index }
-            }
-          });
-          index += element.text.length + 1; // +1 for the newline
-          break;
-          
-        case 'listItem':
-          const prefix = element.ordered ? `${element.index}. ` : '• ';
-          requests.push(
-            {
-              insertText: {
-                text: prefix + element.text + '\n',
-                location: { index }
-              }
-            },
-            {
-              updateParagraphStyle: {
-                paragraphStyle: element.style,
-                range: {
-                  startIndex: index,
-                  endIndex: index + prefix.length + element.text.length
-                },
-                fields: 'indentStart,indentFirstLine'
-              }
-            }
-          );
-          index += prefix.length + element.text.length + 1; // +1 for the newline
-          break;
-          
-        case 'codeBlock':
-          requests.push(
-            {
-              insertText: {
-                text: element.text + '\n',
-                location: { index }
-              }
-            },
-            {
-              updateTextStyle: {
-                textStyle: element.style,
-                range: {
-                  startIndex: index,
-                  endIndex: index + element.text.length
-                },
-                fields: 'fontFamily,backgroundColor'
-              }
-            }
-          );
-          index += element.text.length + 1; // +1 for the newline
-          break;
-          
-        case 'image':
-          // Note: Google Docs API doesn't directly support image insertion from URLs
-          // This would require downloading the image and uploading as inline image
-          // For now, we'll just add a text placeholder
-          requests.push({
-            insertText: {
-              text: `[Image: ${element.text || element.href}]\n`,
-              location: { index }
-            }
-          });
-          index += `[Image: ${element.text || element.href}]\n`.length;
-          break;
-          
-        default:
-          logger.warn(`Unsupported element type: ${element.type}`);
-          break;
-      }
-    }
-    
-    logger.info('Successfully processed markdown to Google Docs format');
+    logger.info(`Successfully processed markdown to Google Docs format with ${requests.length} requests`);
     
     return {
       requests
@@ -229,3 +31,305 @@ exports.processMarkdown = (markdown) => {
     throw error;
   }
 };
+
+/**
+ * Convert markdown directly to Google Docs API requests
+ * @param {string} markdown - Markdown content
+ * @returns {Array} Array of Google Docs API requests
+ */
+function convertMarkdownToRequests(markdown) {
+  const requests = [];
+  let index = 1; // Start at 1 since the document already has title
+  
+  // Split the markdown into lines
+  const lines = markdown.split('\n');
+  
+  // Process each line
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Skip empty lines
+    if (line.trim() === '') {
+      requests.push({
+        insertText: {
+          text: '\n',
+          location: { index }
+        }
+      });
+      index += 1;
+      continue;
+    }
+    
+    // Process headings (e.g., # Heading 1, ## Heading 2)
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      const text = headingMatch[2];
+      
+      requests.push({
+        insertText: {
+          text: text + '\n',
+          location: { index }
+        }
+      });
+      
+      requests.push({
+        updateParagraphStyle: {
+          paragraphStyle: {
+            namedStyleType: `HEADING_${level}`
+          },
+          range: {
+            startIndex: index,
+            endIndex: index + text.length
+          },
+          fields: 'namedStyleType'
+        }
+      });
+      
+      index += text.length + 1; // +1 for newline
+      continue;
+    }
+    
+    // Process lists (bulleted and numbered)
+    const bulletedListMatch = line.match(/^(\s*)-\s+(.+)$/);
+    const numberedListMatch = line.match(/^(\s*)\d+\.\s+(.+)$/);
+    
+    if (bulletedListMatch) {
+      const indent = bulletedListMatch[1].length;
+      const text = bulletedListMatch[2];
+      
+      requests.push({
+        insertText: {
+          text: text + '\n',
+          location: { index }
+        }
+      });
+      
+      requests.push({
+        createParagraphBullets: {
+          range: {
+            startIndex: index,
+            endIndex: index + text.length
+          },
+          bulletPreset: 'BULLET_DISC_CIRCLE_SQUARE'
+        }
+      });
+      
+      if (indent > 0) {
+        requests.push({
+          updateParagraphStyle: {
+            paragraphStyle: {
+              indentStart: {
+                magnitude: indent * 18,
+                unit: 'PT'
+              },
+              indentFirstLine: {
+                magnitude: 0,
+                unit: 'PT'
+              }
+            },
+            range: {
+              startIndex: index,
+              endIndex: index + text.length
+            },
+            fields: 'indentStart,indentFirstLine'
+          }
+        });
+      }
+      
+      index += text.length + 1; // +1 for newline
+      continue;
+    }
+    
+    if (numberedListMatch) {
+      const indent = numberedListMatch[1].length;
+      const text = numberedListMatch[2];
+      
+      requests.push({
+        insertText: {
+          text: text + '\n',
+          location: { index }
+        }
+      });
+      
+      requests.push({
+        createParagraphBullets: {
+          range: {
+            startIndex: index,
+            endIndex: index + text.length
+          },
+          bulletPreset: 'NUMBERED_DECIMAL_NESTED'
+        }
+      });
+      
+      if (indent > 0) {
+        requests.push({
+          updateParagraphStyle: {
+            paragraphStyle: {
+              indentStart: {
+                magnitude: indent * 18,
+                unit: 'PT'
+              },
+              indentFirstLine: {
+                magnitude: 0,
+                unit: 'PT'
+              }
+            },
+            range: {
+              startIndex: index,
+              endIndex: index + text.length
+            },
+            fields: 'indentStart,indentFirstLine'
+          }
+        });
+      }
+      
+      index += text.length + 1; // +1 for newline
+      continue;
+    }
+    
+    // Process code blocks
+    if (line.trim().startsWith('```')) {
+      const codeStartMatch = line.trim().match(/^```([a-zA-Z0-9]*)?$/);
+      if (codeStartMatch) {
+        // This is the start of a code block
+        const language = codeStartMatch[1] || '';
+        let codeContent = '';
+        let j = i + 1;
+        
+        // Find the end of the code block
+        while (j < lines.length && !lines[j].trim().startsWith('```')) {
+          codeContent += lines[j] + '\n';
+          j++;
+        }
+        
+        // Add code block to requests
+        requests.push({
+          insertText: {
+            text: codeContent,
+            location: { index }
+          }
+        });
+        
+        requests.push({
+          updateTextStyle: {
+            textStyle: {
+              fontFamily: 'Courier New',
+              backgroundColor: {
+                color: {
+                  rgbColor: {
+                    red: 0.95,
+                    green: 0.95,
+                    blue: 0.95
+                  }
+                }
+              }
+            },
+            range: {
+              startIndex: index,
+              endIndex: index + codeContent.length
+            },
+            fields: 'fontFamily,backgroundColor'
+          }
+        });
+        
+        index += codeContent.length;
+        i = j; // Skip to the end of the code block
+        continue;
+      }
+    }
+    
+    // Process regular paragraph
+    requests.push({
+      insertText: {
+        text: line + '\n',
+        location: { index }
+      }
+    });
+    
+    // Process inline formatting for this paragraph
+    processInlineFormatting(requests, line, index);
+    
+    index += line.length + 1; // +1 for newline
+  }
+  
+  return requests;
+}
+
+/**
+ * Process inline formatting (bold, italic, links) in text
+ * @param {Array} requests - Array of Google Docs API requests to add to
+ * @param {string} text - Text to process
+ * @param {number} startIndex - Starting index in the document
+ */
+function processInlineFormatting(requests, text, startIndex) {
+  // Process bold (** or __)
+  const boldRegex = /(\*\*|__)(.*?)\1/g;
+  let match;
+  
+  while ((match = boldRegex.exec(text)) !== null) {
+    const matchText = match[2];
+    const matchStart = match.index + match[1].length;
+    const matchEnd = matchStart + matchText.length;
+    
+    requests.push({
+      updateTextStyle: {
+        textStyle: {
+          bold: true
+        },
+        range: {
+          startIndex: startIndex + matchStart,
+          endIndex: startIndex + matchEnd
+        },
+        fields: 'bold'
+      }
+    });
+  }
+  
+  // Process italic (* or _)
+  const italicRegex = /(?<!\*|_)(\*|_)((?!\1).*?)\1(?!\1)/g;
+  
+  while ((match = italicRegex.exec(text)) !== null) {
+    const matchText = match[2];
+    const matchStart = match.index + 1;
+    const matchEnd = matchStart + matchText.length;
+    
+    requests.push({
+      updateTextStyle: {
+        textStyle: {
+          italic: true
+        },
+        range: {
+          startIndex: startIndex + matchStart,
+          endIndex: startIndex + matchEnd
+        },
+        fields: 'italic'
+      }
+    });
+  }
+  
+  // Process links [text](url)
+  const linkRegex = /\[(.*?)\]\((.*?)\)/g;
+  
+  while ((match = linkRegex.exec(text)) !== null) {
+    const linkText = match[1];
+    const linkUrl = match[2];
+    const linkStart = match.index + 1;
+    const linkEnd = linkStart + linkText.length;
+    
+    requests.push({
+      updateTextStyle: {
+        textStyle: {
+          link: {
+            url: linkUrl
+          }
+        },
+        range: {
+          startIndex: startIndex + linkStart,
+          endIndex: startIndex + linkEnd
+        },
+        fields: 'link'
+      }
+    });
+  }
+}
