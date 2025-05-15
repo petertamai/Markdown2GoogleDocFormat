@@ -3,11 +3,6 @@
 const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
-// File: src/middleware/validators.js
-
-const { body, validationResult } = require('express-validator');
-const logger = require('../utils/logger');
-
 /**
  * Validates markdown payload
  */

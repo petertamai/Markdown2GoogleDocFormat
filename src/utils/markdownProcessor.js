@@ -1,6 +1,5 @@
 // File: src/utils/markdownProcessor.js
 
-const { marked } = require('marked');
 const logger = require('./logger');
 
 /**
@@ -12,13 +11,7 @@ exports.processMarkdown = (markdown) => {
   try {
     logger.info('Processing markdown to Google Docs format');
     
-    // Create a new instance of marked
-    const markedInstance = new marked.Marked();
-    
-    // Parse markdown to HTML (we'll ignore the HTML output)
-    markedInstance.parse(markdown);
-    
-    // Instead of using the renderer, directly parse the markdown
+    // Directly parse the markdown
     const requests = convertMarkdownToRequests(markdown);
     
     logger.info(`Successfully processed markdown to Google Docs format with ${requests.length} requests`);
@@ -289,23 +282,28 @@ function processInlineFormatting(requests, text, startIndex) {
   // Process italic (* or _)
   const italicRegex = /(?<!\*|_)(\*|_)((?!\1).*?)\1(?!\1)/g;
   
-  while ((match = italicRegex.exec(text)) !== null) {
-    const matchText = match[2];
-    const matchStart = match.index + 1;
-    const matchEnd = matchStart + matchText.length;
-    
-    requests.push({
-      updateTextStyle: {
-        textStyle: {
-          italic: true
-        },
-        range: {
-          startIndex: startIndex + matchStart,
-          endIndex: startIndex + matchEnd
-        },
-        fields: 'italic'
-      }
-    });
+  try {
+    while ((match = italicRegex.exec(text)) !== null) {
+      const matchText = match[2];
+      const matchStart = match.index + 1;
+      const matchEnd = matchStart + matchText.length;
+      
+      requests.push({
+        updateTextStyle: {
+          textStyle: {
+            italic: true
+          },
+          range: {
+            startIndex: startIndex + matchStart,
+            endIndex: startIndex + matchEnd
+          },
+          fields: 'italic'
+        }
+      });
+    }
+  } catch (error) {
+    // Skip italic formatting if the regex fails
+    logger.warn('Error processing italic formatting, skipping');
   }
   
   // Process links [text](url)

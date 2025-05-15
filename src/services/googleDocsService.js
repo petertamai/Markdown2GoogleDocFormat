@@ -8,7 +8,7 @@ const logger = require('../utils/logger');
  * Creates a new Google Document
  * @param {string} title - Document title
  * @param {Array} requests - Google Docs API requests for document content
- * @param {Object} credentials - OAuth credentials passed from n8n
+ * @param {Object} credentials - OAuth credentials with access_token
  * @returns {Promise<Object>} Created document info
  */
 exports.createGoogleDoc = async (title, requests, credentials) => {
@@ -53,7 +53,7 @@ exports.createGoogleDoc = async (title, requests, credentials) => {
 /**
  * Gets document metadata
  * @param {string} documentId - Google Doc ID
- * @param {Object} credentials - OAuth credentials passed from n8n
+ * @param {Object} credentials - OAuth credentials with access_token
  * @returns {Promise<Object>} Document metadata
  */
 exports.getDocumentMetadata = async (documentId, credentials) => {
@@ -76,7 +76,7 @@ exports.getDocumentMetadata = async (documentId, credentials) => {
 
 /**
  * Gets Google Auth client from provided OAuth credentials
- * @param {Object} credentials - OAuth credentials from n8n
+ * @param {Object} credentials - OAuth credentials with access_token
  * @returns {OAuth2Client} Authenticated OAuth2 client
  */
 function getGoogleAuthFromOAuthCredentials(credentials) {
@@ -84,12 +84,10 @@ function getGoogleAuthFromOAuthCredentials(credentials) {
     // Create OAuth2 client
     const oauth2Client = new OAuth2Client();
     
-    // Set credentials directly
+    // Set credentials directly - only access_token is required
     oauth2Client.setCredentials({
       access_token: credentials.access_token,
-      refresh_token: credentials.refresh_token,
-      token_type: credentials.token_type || 'Bearer',
-      expiry_date: credentials.expiry_date
+      token_type: credentials.token_type || 'Bearer'
     });
     
     return oauth2Client;

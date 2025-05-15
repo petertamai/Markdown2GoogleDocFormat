@@ -41,7 +41,7 @@ exports.convertMarkdownToGoogleDoc = async (req, res) => {
       token_type: 'Bearer'
     };
     
-    // Process markdown to Google Docs format using the more reliable formatter
+    // Process markdown to Google Docs format
     logger.info('Processing markdown to Google Docs format');
     const { requests } = processMarkdown(markdown);
     

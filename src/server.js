@@ -12,7 +12,6 @@ const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`API Key auth: ${process.env.API_KEY ? 'enabled' : 'disabled'}`);
-  logger.info(`Rate limiting: ${process.env.ENABLE_RATE_LIMIT === 'true' ? 'enabled' : 'disabled'}`);
 });
 
 // Handle uncaught exceptions
