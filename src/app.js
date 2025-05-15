@@ -10,6 +10,9 @@ const markdownRoutes = require('./routes/markdownRoutes');
 // Initialize express app
 const app = express();
 
+// Enable trust proxy
+app.set('trust proxy', true);
+
 // Set up middleware
 app.use(helmet()); // Security headers
 app.use(cors()); // Enable CORS for all routes
@@ -22,9 +25,6 @@ app.use(morgan('combined', {
     write: (message) => logger.info(message.trim())
   }
 }));
-
-// Set trust proxy to handle X-Forwarded-For headers correctly
-app.set('trust proxy', true);
 
 // API Key authentication middleware
 const apiKeyAuth = (req, res, next) => {

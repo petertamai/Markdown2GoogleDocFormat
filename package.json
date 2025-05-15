@@ -24,8 +24,7 @@
       "googleapis": "129.0.0",
       "helmet": "7.2.0",
       "morgan": "1.10.0",
-      "winston": "3.17.0",
-      "showdown": "2.1.0"
+      "winston": "3.17.0"
     },
     "devDependencies": {
       "eslint": "8.57.1",
